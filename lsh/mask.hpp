@@ -30,6 +30,8 @@ class Mask {
     return result;
   }
 
+  size_t hash_bits() const { return masks_.size(); }
+
  private:
   std::vector<uint16_t> masks_;
 };

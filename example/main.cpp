@@ -10,7 +10,7 @@ int main() {
   table.insert(lsh::vector_t(std::string("0100")));
   table.insert(lsh::vector_t(std::string("0110")));
 
-  const auto result = table.query(vector_t(std::string("1001")));
+  const auto result = table.query(lsh::vector_t(std::string("1001")));
 
   std::string buffer;
   boost::to_string(result, buffer);
