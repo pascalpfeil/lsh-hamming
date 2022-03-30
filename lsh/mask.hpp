@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
+#include <unordered_set>
+#include <vector>
 
 #include "bitvector.hpp"
 
@@ -12,38 +14,39 @@ class Mask {
  private:
   using offset_t = uint16_t;
 
-  static std::vector<offset_t> init_masks(const size_t num_bits,
-                                          const size_t hash_bits) {
+  static std::vector<offset_t> init_offsets(const size_t num_bits,
+                                            const size_t hash_bits) {
     std::random_device rand;
     std::mt19937 gen{rand()};
     std::uniform_int_distribution<offset_t> dist(0u, num_bits - 1u);
 
-    std::vector<offset_t> masks;
-    masks.reserve(hash_bits);
-    for (size_t i = 0; i < hash_bits; ++i) {
-      masks.emplace_back(dist(gen));
+    std::unordered_set<offset_t> offsets;
+    offsets.reserve(hash_bits);
+    while (offsets.size() < hash_bits) {
+      offsets.insert(dist(gen));
     }
-    return masks;
+
+    return std::vector<offset_t>(offsets.begin(), offsets.end());
   }
 
  public:
   Mask(const size_t num_bits, const size_t hash_bits)
-      : masks_(init_masks(num_bits, hash_bits)) {}
+      : offsets_(init_offsets(num_bits, hash_bits)) {}
 
   [[nodiscard]] vector_t project(const vector_t &v) const {
-    vector_t result(masks_.size());
+    vector_t result(offsets_.size());
 
-    for (size_t i = 0; i < masks_.size(); ++i) {
-      result[i] = v[masks_[i]];
+    for (size_t i = 0; i < offsets_.size(); ++i) {
+      result[i] = v[offsets_[i]];
     }
 
     return result;
   }
 
-  [[nodiscard]] size_t hash_bits() const { return masks_.size(); }
+  [[nodiscard]] size_t hash_bits() const { return offsets_.size(); }
 
  private:
-  const std::vector<offset_t> masks_;
+  const std::vector<offset_t> offsets_;
 };
 
 }  // namespace lsh
