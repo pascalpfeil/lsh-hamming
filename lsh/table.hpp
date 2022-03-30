@@ -87,13 +87,13 @@ class Table {
                                               : vector_t();
   }
 
-  size_t num_hash_bits() const {
+  [[nodiscard]] size_t num_hash_bits() const {
     return masks_.empty() ? 0 : masks_.front().hash_bits();
   }
 
-  size_t num_hash_functions() const { return buckets_.size(); }
+  [[nodiscard]] size_t num_hash_functions() const { return buckets_.size(); }
 
-  size_t size() const { return values_.size(); }
+  [[nodiscard]] size_t size() const { return values_.size(); }
 
  private:
   const size_t num_bits_;
