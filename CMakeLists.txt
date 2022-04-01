@@ -9,9 +9,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_options(-Wall -Wextra)
 
 option(LSH_BUILD_EXAMPLE "Builds the lsh example." ON)
+option(LSH_BUILD_TESTS "Build the lsh tests." ON)
+
 
 if (LSH_BUILD_EXAMPLE)
     include(example)
+endif ()
+
+if (LSH_BUILD_TESTS)
+    include(tests)
 endif ()
 
 include(lsh)

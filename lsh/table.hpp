@@ -19,7 +19,7 @@ class Table {
   // always have a higher offset w.r.t. the values_ vector.
   using offset_collection_t = std::vector<offset_t>;
 
-  using bucket_t = std::unordered_map<vector_t, offset_collection_t>;
+  using bucket_t = std::map<vector_t, offset_collection_t>;
 
   static constexpr size_t kMaxHammingDistance =
       std::numeric_limits<size_t>::max();
@@ -69,8 +69,30 @@ class Table {
       const bucket_t& bucket = buckets_[i];
       const vector_t key = masks_[i].project(v);
 
-      const bucket_t::const_iterator it = bucket.find(key);
-      if (it != bucket.end()) {
+      auto it = bucket.lower_bound(key);
+      if(it != bucket.begin() /* can't look further left if we are at the first entry already */) {
+        if (it == bucket.end() /* found nothing that is greater or equal */) {
+          it--;  // look left
+        } else if (it->first != key /* found a key that is greater */) {
+          const auto greater_it = it;
+          it--;  // look left
+
+          // check what is closer and set it accordingly
+          for (size_t i = 0; i < key.size(); ++i) {
+            const bool greater_bit = greater_it->first[i];
+            const bool smaller_bit = it->first[i];
+
+            if (greater_bit != smaller_bit) {
+              const bool key_bit = key[i];
+              if (greater_bit == key_bit) {
+                it = greater_it;
+              } /* else it stay it, which is pointing to some smaller key */
+              break;
+            }
+          }
+        } /* else we have an exact match, no need to look further */
+      }
+      if (it != bucket.end() /* can still be end if the bucket is empty */) {
         const offset_collection_t& offsets = it->second;
 
         offset_collection_t union_result;
