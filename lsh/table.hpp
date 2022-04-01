@@ -19,6 +19,8 @@ class Table {
   // always have a higher offset w.r.t. the values_ vector.
   using offset_collection_t = std::vector<offset_t>;
 
+  using bucket_t = std::unordered_map<vector_t, offset_collection_t>;
+
   static constexpr size_t kMaxHammingDistance =
       std::numeric_limits<size_t>::max();
 
@@ -99,7 +101,7 @@ class Table {
   const size_t num_bits_;
 
   std::vector<vector_t> values_;
-  std::vector<std::unordered_map<vector_t, offset_collection_t>> buckets_;
+  std::vector<bucket_t> buckets_;
   std::vector<Mask> masks_;
 };
 
