@@ -19,7 +19,11 @@ class Table {
   // The offsets will be inserted in sorted order automatically, as new elements
   // always have a higher offset w.r.t. the values_ vector.
   using offset_collection_t = std::vector<offset_t>;
-
+  // If we use true locality sensitive hashing without fallback we use an
+  // unordered_map for O(1) access, if we use a fallback when no bucket is
+  // found, we use a map so we can look left and right in an ordered manner.
+  // Note that using the fallback is not true locality sensitive hashing any
+  // more, as this puts more emphasis on the first bits of the keys.
   using bucket_t = typename std::conditional<
       use_fallback, std::map<vector_t, offset_collection_t>,
       std::unordered_map<vector_t, offset_collection_t>>::type;
@@ -72,8 +76,11 @@ class Table {
       const bucket_t& bucket = buckets_[i];
       const vector_t key = masks_[i].project(v);
 
+      typename bucket_t::const_iterator it;
+
       if constexpr (use_fallback) {
-        auto it = bucket.lower_bound(key);
+        it = bucket.lower_bound(key);
+        
         if(it != bucket.begin() /* can't look further left if we are at the first entry already */) {
           if (it == bucket.end() /* found nothing that is greater or equal */) {
             it--;  // look left
@@ -94,20 +101,20 @@ class Table {
                 break;
               }
             }
-          } /* we have an exact match, no need to look further */
-        } else {
-          it = bucket.find(key);
-        }
+          }
+        } /* we have an exact match, no need to look further */
+      } else {
+        it = bucket.find(key);
+      }
 
-        if (it != bucket.end()) {
-          const offset_collection_t& offsets = it->second;
+      if (it != bucket.end()) {
+        const offset_collection_t& offsets = it->second;
 
-          offset_collection_t union_result;
-          std::set_union(offsets.begin(), offsets.end(),          //
-                         all_offsets.begin(), all_offsets.end(),  //
-                         std::back_inserter(union_result));
-          all_offsets = union_result;
-        }
+        offset_collection_t union_result;
+        std::set_union(offsets.begin(), offsets.end(),          //
+                       all_offsets.begin(), all_offsets.end(),  //
+                       std::back_inserter(union_result));
+        all_offsets = union_result;
       }
     }
 
