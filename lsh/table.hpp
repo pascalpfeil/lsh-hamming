@@ -24,20 +24,27 @@ class Table {
   static constexpr size_t kMaxHammingDistance =
       std::numeric_limits<size_t>::max();
 
+  static std::vector<Mask> init_masks(const size_t num_bits,
+                                      const size_t hash_bits,
+                                      const size_t num_hash_functions) {
+    std::vector<Mask> masks;
+    for (size_t i = 0; i < num_hash_functions; ++i) {
+      masks.emplace_back(num_bits, hash_bits);
+    }
+    return masks;
+  }
+
  public:
   Table(const size_t num_bits, const size_t hash_bits,
         const size_t num_hash_functions)
-      : num_bits_(num_bits), buckets_(num_hash_functions) {
+      : num_bits_(num_bits),
+        masks_(init_masks(num_bits, hash_bits, num_hash_functions)),
+        buckets_(num_hash_functions) {
     assert(hash_bits > 0);
     assert(num_bits > hash_bits);
     assert(num_hash_functions > 0);
     assert(num_bits > num_hash_functions);
     assert(num_bits < kMaxHammingDistance);
-
-    for (size_t i = 0; i < num_hash_functions; ++i) {
-      masks_.emplace_back(num_bits, hash_bits);
-    }
-
     assert(masks_.size() == buckets_.size());
   }
 
@@ -59,10 +66,10 @@ class Table {
 
     offset_collection_t all_offsets;
     for (size_t i = 0; i < buckets_.size(); ++i) {
-      const auto& bucket = buckets_[i];
+      const bucket_t& bucket = buckets_[i];
       const vector_t key = masks_[i].project(v);
 
-      auto it = bucket.find(key);
+      const bucket_t::const_iterator it = bucket.find(key);
       if (it != bucket.end()) {
         const offset_collection_t& offsets = it->second;
 
@@ -99,10 +106,10 @@ class Table {
 
  private:
   const size_t num_bits_;
+  const std::vector<Mask> masks_;
 
   std::vector<vector_t> values_;
   std::vector<bucket_t> buckets_;
-  std::vector<Mask> masks_;
 };
 
 }  // namespace lsh
