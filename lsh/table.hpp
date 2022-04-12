@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -68,7 +69,11 @@ class Table {
     }
   }
 
-  [[nodiscard]] vector_t query(const vector_t& v) const {
+  inline void insert(const std::vector<vector_t> vectors) {
+    for (const vector_t& v : vectors) insert(v);
+  }
+
+  [[nodiscard]] std::optional<offset_t> query_offset(const vector_t& v) const {
     assert(v.size() == num_bits_);
 
     offset_collection_t all_offsets;
@@ -80,7 +85,7 @@ class Table {
 
       if constexpr (use_fallback) {
         it = bucket.lower_bound(key);
-        
+
         if(it != bucket.begin() /* can't look further left if we are at the first entry already */) {
           if (it == bucket.end() /* found nothing that is greater or equal */) {
             it--;  // look left
@@ -129,8 +134,14 @@ class Table {
       }
     }
 
-    return min_distance < kMaxHammingDistance ? values_[result_offset]
-                                              : vector_t();
+    return min_distance < kMaxHammingDistance
+               ? std::optional<offset_t>{result_offset}
+               : std::nullopt;
+  }
+
+  [[nodiscard]] std::optional<vector_t> query(const vector_t& v) const {
+    std::optional<offset_t> offset = query_offset(v);
+    return offset ? std::optional<vector_t>{values_[*offset]} : std::nullopt;
   }
 
   [[nodiscard]] size_t num_hash_bits() const {
@@ -140,6 +151,10 @@ class Table {
   [[nodiscard]] size_t num_hash_functions() const { return buckets_.size(); }
 
   [[nodiscard]] size_t size() const { return values_.size(); }
+
+  inline const boost::dynamic_bitset<>& operator[](std::size_t i) const {
+    return values_[i];
+  }
 
  private:
   const size_t num_bits_;
